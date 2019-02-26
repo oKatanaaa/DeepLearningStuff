@@ -53,6 +53,8 @@ class TheanoNN(object):
         )
         
         n_batches = len(Xtrain) // batch_sz
+        # Create this variable in order to get cost per vector
+        cost_divider = len(Xtest)
         
         costs = []
         errors = []
@@ -66,11 +68,11 @@ class TheanoNN(object):
                 cost, Yp = self.get_prediction(Xtest, Ytest)
                 error = error_rate(Yp, np.argmax(Ytest, axis=1))
                 
-                costs.append(cost)
+                costs.append(cost/cost_divider)
                 errors.append(error)
                 if j % 10 == 0:
                     print('Accuracy: ', 1 - error)
-                    print('Cost: ', cost)
+                    print('Cost: ', cost/cost_divider)
                     
         return costs, errors
         
