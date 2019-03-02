@@ -49,8 +49,8 @@ class MultiLayerNN(object):
         
     def forward(self, X):
         Z = X
-        for hidden_layer, p in zip(self.hidden_layers, self.dropout_rates):
-            Z = hidden_layer.forward(Z*p)
+        for hidden_layer in self.hidden_layers:
+            Z = hidden_layer.forward(Z)
         
         return T.nnet.softmax(Z.dot(self.W) + self.b)
     
