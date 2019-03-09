@@ -29,10 +29,9 @@ class MultiLayerNN(object):
         M2 = None
         count = 0
         for M2 in h_layer_sizes:
-            W = np.random.randn(M1, M2)
-            b = np.zeros(M2)
             self.hidden_layers.append(HiddenLayer(M1, M2, count))
             M1 = M2
+            count += 1
         
         W = np.random.randn(M1, K) 
         b = np.zeros(K)
