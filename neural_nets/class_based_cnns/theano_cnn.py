@@ -121,7 +121,7 @@ class CNN(object):
     
         return T.nnet.softmax( Z.dot(self.W) + self.b )
     
-    def fit(self, Xtrain, Ytrain, Xtest, Ytest, learning_rate=0.0001, mu=0.9, decay=0.999, epochs=5, batch_sz=100):
+    def fit(self, Xtrain, Ytrain, Xtest, Ytest, learning_rate=0.0001, mu=0.9, decay=0.99, epochs=5, batch_sz=100):
         learning_rate = np.float32(learning_rate)
         mu = np.float32(mu)
         decay = np.float32(decay)

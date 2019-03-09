@@ -53,9 +53,23 @@ def rearrange(X):
             new_X_mat[0, j] += pixels_row[j*28:(j+1)*28]
 
     return new_X.astype(np.float32)
+
+def rearrange_tf(X):
+    # input is (N, 784)
+    # output is (N, 28, 28, 1)
+    new_X = np.zeros((X.shape[0], 28, 28, 1))
+    for j in range(28):
+        new_X[:,j,:,0] += X[:,j*28:(j+1)*28]
+        
+    return new_X
     
     
 def get_preprocessed_image_data():
     X, Y = get_preprocessed_data()
     X = rearrange(X)
+    return X, Y
+
+def get_preprocessed_image_data_tf():
+    X, Y = get_preprocessed_data()
+    X = rearrange_tf(X)
     return X, Y
