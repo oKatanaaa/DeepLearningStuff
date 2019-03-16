@@ -49,7 +49,7 @@ class HiddenLayer(object):
         
 
 class CNN(object):
-    def __init__(self, input_shape, K, conv_layer_sizes, hidden_layer_sizes):
+    def __init__(self, input_shape, K, conv_layer_sizes, hidden_layer_sizes, batch_sz):
         """
         input_shape - tuple with sizes of the input image. Data: (image_width, image_height, color_channels)
         K - number of classes. Data: int
@@ -58,10 +58,11 @@ class CNN(object):
         """
         self.conv_layer_sizes = conv_layer_sizes
         self.hidden_layer_sizes = hidden_layer_sizes
+        self.batch_sz = batch_sz
         
         w, h, c = input_shape
-        self.X = tf.placeholder(tf.float32, shape=(None, w, h, c), name='X')
-        self.T = tf.placeholder(tf.float32, shape=(None, K), name='Y')
+        self.X = tf.placeholder(tf.float32, shape=(batch_sz, w, h, c), name='X')
+        self.T = tf.placeholder(tf.float32, shape=(batch_sz, K), name='Y')
         
         # Init conv layers
         im = c # input maps
@@ -158,6 +159,53 @@ class CNN(object):
                         print('Epoch:', i, 'Accuracy:', 1 - error, 'Cost:', test_cost)
                         
         return costs, errors
+    
+    
+    def limited_fit(self, Xtrain, Ytrain, Xtest, Ytest, learning_rate=0.0001, mu=0.9, decay=0.999, epochs=9):
+        Xtrain = Xtrain.astype(np.float32)
+        Ytrain = Ytrain.astype(np.float32)
+        Xtest = Xtest.astype(np.float32)
+        Ytest = Ytest.astype(np.float32)
+        
+        
+        Yish = self.forward_train(self.X)
+        cost = tf.reduce_sum( tf.nn.softmax_cross_entropy_with_logits_v2(logits=Yish, labels=self.T) )
+        train_op = tf.train.RMSPropOptimizer(learning_rate, decay=decay, momentum=mu).minimize(cost)
+        
+        predict_op = tf.argmax(Yish, 1)
+        
+        n_batches = Xtrain.shape[0] // self.batch_sz
+        
+        init_op = tf.global_variables_initializer()
+        costs = []
+        errors = []
+        
+        with tf.Session() as session:
+            session.run(init_op)
+            
+            for i in range(epochs):
+                Xtrain, Ytrain = shuffle(Xtrain, Ytrain)
+                for j in range(n_batches):
+                    Xbatch = Xtrain[j*self.batch_sz:(j+1)*self.batch_sz]
+                    Ybatch = Ytrain[j*self.batch_sz:(j+1)*self.batch_sz]
+                    
+                    session.run(train_op, feed_dict={self.X: Xbatch, self.T: Ybatch})
+                    
+                    if j % 20 == 0:
+                        test_cost = 0
+                        predictions = np.zeros(len(Xtest))
+                        for k in range(len(Xtest // batch_sz)):
+                            Xtestbatch = Xtest[k*batch_sz:(k+1)*batch_sz]
+                            Ytestbatch = Ytest[k*batch_sz:(k+1)*batch_sz]
+                            test_cost += session.run(cost, feed_dict={self.X: Xtestbatch, self.T: Ytestbatch})
+                            predictions[k*batch_sz:(k+1)*batch_sz] = session.run(
+                                predict_op, feed_dict={self.X: Xtestbatch})
+                        error = error_rate(predictions, np.argmax(Ytestbatch, axis=1))
+                        costs.append(test_cost)
+                        errors.append(error)
+                        print('Epoch:', i, 'Accuracy:', 1 - error, 'Cost:', test_cost)
+                        
+        return costs, errors
         
         
         
@@ -174,13 +222,14 @@ def main():
     batch_sz = 500
     
     model = CNN(input_shape=(28, 28, 1), K=10,
-                conv_layer_sizes=[(3, 3, 64, False), (3, 3, 64, True),
-                                 (3, 3, 128, False), (3, 3, 128, True),
-                                 (3, 3, 256, False), (3, 3, 256, True)],
-                hidden_layer_sizes=[1000, 500, 200]
+                conv_layer_sizes=[
+                    (3, 3, 64, False), (3, 3, 64, True),
+                     (3, 3, 128, False), (3, 3, 128, True),
+                     (3, 3, 256, False), (3, 3, 256, True)],
+                hidden_layer_sizes=[1000, 500, 200],
+                batch_sz
                )
-    costs, errors = model.fit(Xtrain, Ytrain, Xtest, Ytest, learning_rate=1e-6, mu=0.4, decay=0.99, epochs=epochs,
-                             batch_sz=batch_sz)
+    costs, errors = model.limited_fit(Xtrain, Ytrain, Xtest, Ytest, learning_rate=1e-6, mu=0.4, decay=0.99, epochs=epochs)
     create_graph(errors, 'Cnntest_error_{}.png'.format(1 - errors[-1]), 'Error', 'Iterations')
     create_graph(costs, 'Cnntest_cost.png', 'Cost', 'Iterations')
     
