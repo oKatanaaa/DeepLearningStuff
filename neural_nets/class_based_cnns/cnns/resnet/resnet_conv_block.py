@@ -3,7 +3,7 @@ import tensorflow as tf
 import numpy as np
 
 class ConvBlock(object):
-    def __init__(self, input_depth, fm_sizes, activation=tf.nn.relu):
+    def __init__(self, input_depth, fm_sizes, stride=1, activation=tf.nn.relu):
         """
         input_depth - number of the feature maps(trear it as color channels if the block is
         the first component in the network)
@@ -16,7 +16,7 @@ class ConvBlock(object):
         
         # Init main branch
         # Conv -> BN -> F() ----> Conv -> BN -> F() ----> Conv -> BN
-        self.conv1 = ConvLayer(input_depth, 1, 1, fm_sizes[0], padding='VALID', activation=None)
+        self.conv1 = ConvLayer(input_depth, 1, 1, fm_sizes[0], stride, padding='VALID', activation=None)
         self.bn1 = BatchNormLayer(fm_sizes[0])
         self.conv2 = ConvLayer(fm_sizes[0], 3, 3, fm_sizes[1], activation=None)
         self.bn2 = BatchNormLayer(fm_sizes[1])
@@ -25,10 +25,10 @@ class ConvBlock(object):
         
         # Init shortcut branch
         # Conv -> BN
-        self.convs = ConvLayer(input_depth, 1, 1, fm_sizes[2], padding='VALID', activation=None)
+        self.convs = ConvLayer(input_depth, 1, 1, fm_sizes[2], stride, padding='VALID', activation=None)
         self.bns = BatchNormLayer(fm_sizes[2])
         
-        self.params = [
+        self.layers = [
             self.conv1, self.bn1,
             self.conv2, self.bn2,
             self.conv3, self.bn3,
@@ -44,8 +44,10 @@ class ConvBlock(object):
         # Main branch
         FX = self.conv1.forward(X)
         FX = self.bn1.forward(FX)
+        FX = self.f(FX)
         FX = self.conv2.forward(FX)
         FX = self.bn2.forward(FX)
+        FX = self.f(FX)
         FX = self.conv3.forward(FX)
         FX = self.bn3.forward(FX)
         
@@ -102,7 +104,11 @@ class ConvBlock(object):
 
 
     def get_params(self):
-        return self.params
+        params = []
+        for layer in self.layers:
+            params += layer.get_params()
+        
+        return params
 
 
 if __name__ == '__main__':

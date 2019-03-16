@@ -1,4 +1,4 @@
-from layers import ConvLayer, DenseLayer, BatchNormLayer, MaxPool2XLayer, ActivationLayer
+from layers import ConvLayer, DenseLayer, BatchNormLayer, MaxPoolLayer, ActivationLayer
 import tensorflow as tf
 import numpy as np
 
@@ -23,7 +23,7 @@ class IdentityBlock:
         self.conv3 = ConvLayer(fm_sizes[1], 1, 1, fm_sizes[2], padding='VALID', activation=None)
         self.bn3 = BatchNormLayer(fm_sizes[2])
         
-        self.params = [
+        self.layers = [
             self.conv1, self.bn1,
             self.conv2, self.bn2,
             self.conv3, self.bn3

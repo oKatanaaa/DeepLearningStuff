@@ -55,10 +55,10 @@ class DenseLayer(object):
         W = np.random.randn(input_shape, neuron_number)
         # Perform Xavier initialization
         if activation == tf.nn.relu:
-            W /= (input_shape + neuron_shape) / 2
+            W /= (input_shape + neuron_number) / 2
         # Perform Lasange initialization
         else:
-            W *=  np.sqrt(12 / (input_shape + neuron_shape))
+            W *=  np.sqrt(12 / (input_shape + neuron_number))
         
         b = np.zeros(neuron_number)
         
@@ -73,6 +73,13 @@ class DenseLayer(object):
             return out
         
         return self.f(out)
+    
+    
+    def copyFromKerasLayers(self, layer):
+        W, b = layer.get_weights()
+        op1 = self.W.assign(W)
+        op2 = self.b.assign(b)
+        self.session.run((op1, op2))
     
     
     # For Keras interface
@@ -160,7 +167,33 @@ class MaxPoolLayer(object):
     
     
     def forward(self, X):
-        return tf.nn.max_pool(X, ksize=self.ksize, strides=self.strides, padding=self.padding)
+        return tf.nn.max_pool(
+            X, 
+            ksize=self.ksize, 
+            strides=self.strides, 
+            padding=self.padding
+        )
+    
+    
+    # For Keras interface
+    def get_params(self):
+        return []
+    
+    
+class AvgPoolLayer(object):
+    def __init__(self, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1], padding='SAME'):
+        self.ksize = ksize
+        self.strides = strides
+        self.padding = padding
+    
+    
+    def forward(self, X):
+        return tf.nn.avg_pool(
+            X, 
+            ksize=self.ksize, 
+            strides=self.strides, 
+            padding=self.padding
+        )
     
     
     # For Keras interface
@@ -199,6 +232,16 @@ class ZeroPaddingLayer(object):
         return []
                  
                  
-                 
+class FlattenLayer(object):
+    def __inti__(self):
+        pass
+    
+    
+    def forward(self, X):
+        return tf.contrib.layers.flatten(X)
+    
+    
+    def get_params(self):
+        return []
                  
                  

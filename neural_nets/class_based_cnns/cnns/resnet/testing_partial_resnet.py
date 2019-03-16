@@ -97,7 +97,7 @@ if __name__ == '__main__':
     
     # compare the 2 models
     output = my_partial_resnet.predict(X)
-    diff = np.abs(output - keras_output).mean()
+    diff = np.abs(output - keras_output).sum()
     if diff < 1e-10:
         print("Everything's great!")
     else:
