@@ -1,7 +1,9 @@
-from cnns.tensorflow_cnn import CNN
+from cnns.resnet import layers
+from cnns.resnet.DenNet import DenNet
 import numpy as np
 from utils import get_dendrite_preprocessed_train_data_tf, error_rate, create_graph
 from sklearn.utils import shuffle
+from utils import get_preprocessed_image_data_tf, error_rate, create_graph
 
 def main():
     X, Y = get_dendrite_preprocessed_train_data_tf()
@@ -39,22 +41,16 @@ def main():
     # Stack all the training Xs and Ys
     Xtest, Ytest = np.vstack([X1, X2, X3, X4]), np.vstack([Y1, Y2, Y3, Y4])
     
-    print('X shape is', X.shape)
+    print('X shape is', Xtrain.shape)
     
-    epochs = 200
-    learning_rate = 1e-8
+    epochs = 300
+    learning_rate = 1e-6
     N, K = Y.shape
-    batch_sz = 150
+    batch_sz = 128
     input_shape = Xtrain.shape[1:]
-    conv_layer_sizes = [(3, 3, 32, False), (3, 3, 32, True),
-                        (3, 3, 64, False), (3, 3, 64, True),
-                        (3, 3, 128, False), (3, 3, 128, True),
-                        (3, 3, 256, True)
-                       ]
-    dense_layer_sizes = [1000, 500, 200]
     
     
-    model = CNN(input_shape, K, conv_layer_sizes, dense_layer_sizes, 150)
+    model = DenNet(batch_sz)
     
     costs, errors = model.limited_fit(Xtrain, Ytrain, Xtest, Ytest, learning_rate=learning_rate, mu=0.9, decay=0.99, epochs=epochs)
     create_graph(errors, 'Cnntest_error_{}.png'.format(1 - errors[-1]), 'Error', 'Iterations')

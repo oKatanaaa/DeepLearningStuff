@@ -1,4 +1,4 @@
-from layers import ConvLayer, DenseLayer, BatchNormLayer, MaxPoolLayer, ActivationLayer
+from .layers import ConvLayer, DenseLayer, BatchNormLayer, MaxPoolLayer, ActivationLayer
 import tensorflow as tf
 import numpy as np
 

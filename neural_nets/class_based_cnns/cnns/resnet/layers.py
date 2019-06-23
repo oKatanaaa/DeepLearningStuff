@@ -17,12 +17,13 @@ class ConvLayer(object):
         W = np.random.randn(*self.shape) * np.sqrt(2.0 / np.prod(self.shape[:-1]))
         b = np.zeros(nof)
         
-        self.W = tf.Variable(W.astype(np.float32))
-        self.b = tf.Variable(b.astype(np.float32))
+        self.W = tf.Variable(W.astype(np.float16))
+        self.b = tf.Variable(b.astype(np.float16))
         self.params = [self.W, self.b]
         
         
     def forward(self, X):
+        X = tf.cast(X, tf.float16)
         conv_out = tf.nn.conv2d(X, self.W, strides=[1, self.stride, self.stride, 1], padding=self.padding)
         conv_out = tf.nn.bias_add(conv_out, self.b)
         if self.f == None:
@@ -62,8 +63,8 @@ class DenseLayer(object):
         
         b = np.zeros(neuron_number)
         
-        self.W = tf.Variable(W.astype(np.float32))
-        self.b = tf.Variable(b.astype(np.float32))
+        self.W = tf.Variable(W.astype(np.float16))
+        self.b = tf.Variable(b.astype(np.float16))
         self.params = [self.W, self.b]
 
         
@@ -100,19 +101,28 @@ class BatchNormLayer(object):
         var_init = np.ones(D)
         # These variables are needed to change the mean and variance of the batch after
         # the batchnormalization
+        gamma = np.ones(D)
         beta = np.zeros(D)
-        gamma = np.zeros(D)
         
-        self.running_mean = tf.Variable(mean_init.astype(np.float32), trainable=False)
-        self.running_variance = tf.Variable(var_init.astype(np.float32), trainable=False)
-        self.beta = tf.Variable(beta.astype(np.float32))
-        self.gamma = tf.Variable(gamma.astype(np.float32))
+        
+        self.running_mean = tf.Variable(mean_init.astype(np.float16), trainable=False)
+        self.running_variance = tf.Variable(var_init.astype(np.float16), trainable=False)
+        self.gamma = tf.Variable(gamma.astype(np.float16))
+        self.beta = tf.Variable(beta.astype(np.float16))
+        
         self.params = [self.running_mean, self.running_variance, self.gamma, self.beta]
         
         
     def forward(self, X, is_training=False, decay=0.9):
+        # These if statements check if we do batchnorm for convolution or dense
+        if len(X.shape) == 4:
+            # conv
+            axes = [0, 1, 2] 
+        else:
+            #dense
+            axes = [0]
         if is_training:
-            batch_mean, batch_var = tf.nn.moments(X, [0])
+            batch_mean, batch_var = tf.nn.moments(X, axes=axes)
             update_running_mean = tf.assign(
                 self.running_mean,
                 self.running_mean*decay + batch_mean*(1 - decay)
@@ -125,7 +135,7 @@ class BatchNormLayer(object):
                 out = tf.nn.batch_normalization(
                     X,
                     batch_mean,
-                    batch_variance,
+                    batch_var,
                     self.beta,
                     self.gamma,
                     1e-4
